@@ -12,7 +12,7 @@ The controls are as follows:
 A0BF    /   zxcv
 
 [ decreases screen scale
-] incrases screen scale
+] increases screen scale
 
 P pauses the emulator
 
