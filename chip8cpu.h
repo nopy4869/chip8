@@ -17,6 +17,45 @@ off_t fsize(const char *filename) {
 FILE *game;
 int badlines;
 
+void reloadgame()
+{
+	int x;
+	int loop;
+	int looop;
+	for(loop = 0; loop < 16; loop++)
+		cpu.V[loop] = 0;
+	for(loop = (512+cpu.romsize); loop < 4096; loop++)
+		cpu.memory[loop] = 0;
+	for(loop = 0; loop < 32; loop++)
+		for(looop = 0; looop < 64; looop++)
+			cpu.gfx[looop][loop] = 0;
+	for(loop = 0; loop < 16; loop++)
+		cpu.stack[loop] = 0;
+	for(loop = 0; loop < 16; loop++)
+		cpu.key[loop] = 0;
+	cpu.sp = 0;
+	cpu.dt = 0;
+	cpu.st = 0;
+	cpu.I = 0;
+	cpu.pc = 512;
+	cpu.op = 0;
+	cpu.opcode[0] = 0;
+	cpu.opcode[1] = 0;
+	cpu.drawflag = 1;
+	cpu.currcount = 0;
+	cpu.currcount--;
+	cpu.lastcount = 0;
+	for(x = 0; x < 80; x++)
+	{
+		cpu.memory[x] = bitmap[x];
+	}
+	for(x = 0; x < 58; x++)
+	{
+		cpu.memory[x+80] = loader[x];
+	}
+	srand(cpu.romsize);
+};
+
 void initcpu()
 {
 	int x;
@@ -26,13 +65,13 @@ void initcpu()
 		cpu.V[loop] = 0;
 	for(loop = 0; loop < 4096; loop++)
 		cpu.memory[loop] = 0;
-	for(loop = 0; loop < 32; loop++)
-		for(looop = 0; looop < 64; looop++)
+	for(loop = 0; loop < 64; loop++)
+		for(looop = 0; looop < 32; looop++)
 			cpu.gfx[loop][looop] = 0;
 	for(loop = 0; loop < 16; loop++)
 		cpu.stack[loop] = 0;
 	for(loop = 0; loop < 16; loop++)
-		cpu.key[16] = 0;
+		cpu.key[loop] = 0;
 	cpu.sp = 0;
 	cpu.dt = 0;
 	cpu.st = 0;
@@ -44,9 +83,17 @@ void initcpu()
 	cpu.drawflag = 0;
 	cpu.dbug = 0;
 	cpu.classic = 0;
+	cpu.SDL = 1;
+	cpu.currcount = 0;
+	cpu.currcount--;
+	cpu.lastcount = 0;
 	for(x = 0; x < 80; x++)
 	{
 		cpu.memory[x] = bitmap[x];
+	}
+	for(x = 0; x < 58; x++)
+	{
+		cpu.memory[x+80] = loader[x];
 	}
 	wprintw(stdscr, "Turn on dbug?\n");
 	wrefresh(stdscr);
@@ -63,10 +110,10 @@ void initcpu()
 		if(bie() == 'y')
 			cpu.stepthru = 1;
 	}
-	wprintw(stdscr, "Turn on SDL mode?\n");
+	wprintw(stdscr, "Turn off SDL mode?\n");
 	wrefresh(stdscr);
 	if(bie() == 'y')
-		cpu.SDL = 1;
+		cpu.SDL = 0;
 	if(cpu.SDL == 1)
 	{
 		wprintw(stdscr, "Start paused?\n");
@@ -80,13 +127,13 @@ void initcpu()
 	if(cpu.classic == 1)
 		wprintw(stdscr, "Classic interpreter mode is on!\n");
 	wrefresh(stdscr);
+	srand(cpu.romsize);
 	hang(1);
 };
 
 int loadgame()
 {
 	char filename [9];
-	int loadgameloop;
 	int loadgamex;
 	int x;
 	wprintw(stdscr, "Please type the file's filename.\nDO NOT HIT ENTER!!!!!\nDO NOT HIT ESCAPE UNLESS YOU WANT TO END FILENAME INPUT!!!!!\nPressing ESCAPE right now will exit the program.\n");
@@ -100,8 +147,8 @@ int loadgame()
 			x = 26;
 		}
 	}
-	loadgameloop = fsize(filename);
-	if(loadgameloop == -1)
+	cpu.romsize = fsize(filename);
+	if(cpu.romsize == -1)
 	{
 		return 1;
 	}
@@ -110,21 +157,20 @@ int loadgame()
 	{
 		return 1;
 	}
-	cpu.romsize = loadgameloop;
 	char read;
-	wprintw(stdscr, "This game has %d bytes\n", loadgameloop);
+	wprintw(stdscr, "This game has %d bytes\n", cpu.romsize);
 	wrefresh(stdscr);
-	for(loadgamex = 0;loadgamex < loadgameloop;loadgamex++)
+	for(loadgamex = 0;loadgamex < cpu.romsize;loadgamex++)
 	{
 		x = fread(&read,1,1,game);
 		if(x != 1)
 		{
 			wprintw(stdscr, "Error reading file: %d bytes read.\n",x);
-//			return 1;
-			break;
+			return 1;
+//			break;
 		}
 		cpu.memory[loadgamex+512] = read;
-		wprintw(stdscr, "%c",cpu.memory[loadgamex+512]);
+		wprintw(stdscr, "%02X",cpu.memory[loadgamex+512]);
 		wrefresh(stdscr);
 	}
 	fclose(game);
@@ -136,6 +182,7 @@ int loadgame()
 
 void ONNN ()
 {
+	disasmnum = 0;
 	//rca1802 program at address NNN
 	badlines++;
 	if(cpu.dbug == 1)
@@ -145,17 +192,19 @@ void ONNN ()
 
 void OOEO ()
 {
+	disasmnum = 1;
 	//Clears screen
 	int loop;
 	int looop;
 	cpu.drawflag = 1;
-	for(loop = 0; loop < 48; loop++)
-		for(looop = 0; looop < 72; looop++)
-			cpu.gfx[loop][looop] = 0;
+	for(loop = 0; loop < 32; loop++)
+		for(looop = 0; looop < 64; looop++)
+			cpu.gfx[looop][loop] = 0;
 }
 
 void OOEE ()
 {
+	disasmnum = 2;
 	//returns from a subroutine
 	cpu.sp = cpu.sp - 1;
 	cpu.pc = cpu.stack[cpu.sp];
@@ -163,22 +212,25 @@ void OOEE ()
 
 void INNN (unsigned short opcode)
 {
+	disasmnum = 3;
 	//Jumps to address NNN
 	opcode = opcode - 0x1000;
-	cpu.pc = opcode;
+	cpu.pc = opcode-2;
 }
 
 void ZNNN (unsigned short opcode)
 {
+	disasmnum = 4;
 	//calls subroutine at NNN
 	cpu.stack[cpu.sp] = cpu.pc;
 	cpu.sp = cpu.sp + 1;
 	opcode = opcode - 0x2000;
-	cpu.pc = opcode;
+	cpu.pc = opcode-2;
 }
 
 void TXNN (unsigned short opcode)
 {
+	disasmnum = 5;
 	//Skips next instruction if VX equals NN
 	int NN;
 	int X;
@@ -191,6 +243,7 @@ void TXNN (unsigned short opcode)
 
 void HXNN (unsigned short opcode)
 {
+	disasmnum = 6;
 	//Skips next instruction if VX doesn't equal NN
 	int NN;
 	int X;
@@ -203,6 +256,7 @@ void HXNN (unsigned short opcode)
 
 void SXYO (unsigned short opcode)
 {
+	disasmnum = 7;
 	//Skips next instruction if VX equals VY
 	int X;
 	int Y;
@@ -216,6 +270,7 @@ void SXYO (unsigned short opcode)
 
 void bXNN (unsigned short opcode)
 {
+	disasmnum = 8;
 	//Sets VX to NN
 	int NN;
 	int X;
@@ -227,6 +282,7 @@ void bXNN (unsigned short opcode)
 
 void sevenXNN (unsigned short opcode)
 {
+	disasmnum = 9;
 	//Adds NN to VX
 	int NN;
 	int X;
@@ -238,6 +294,7 @@ void sevenXNN (unsigned short opcode)
 
 void eightXYO (unsigned short opcode)
 {
+	disasmnum = 10;
 	//sets VX to VY
 	int X;
 	int Y;
@@ -250,6 +307,7 @@ void eightXYO (unsigned short opcode)
 
 void eightXYI (unsigned short opcode)
 {
+	disasmnum = 11;
 	//sets VX to VX or VY
 	int X;
 	int Y;
@@ -262,6 +320,7 @@ void eightXYI (unsigned short opcode)
 
 void eightXYZ (unsigned short opcode)
 {
+	disasmnum = 12;
 	//sets VX to VX and VY
 	int X;
 	int Y;
@@ -274,6 +333,7 @@ void eightXYZ (unsigned short opcode)
 
 void eightXYthree (unsigned short opcode)
 {
+	disasmnum = 13;
 	//sets VX to VX xor VY
 	int X;
 	int Y;
@@ -286,6 +346,7 @@ void eightXYthree (unsigned short opcode)
 
 void eightXYfour (unsigned short opcode)
 {
+	disasmnum = 14;
 	//Adds VY to VX with carry bit support!
 	int X;
 	int Y;
@@ -308,6 +369,7 @@ void eightXYfour (unsigned short opcode)
 
 void eightXYS (unsigned short opcode)
 {
+	disasmnum = 15;
 	//Subtracts VY from VX with borrow bit support!
 	int X;
 	int Y;
@@ -330,6 +392,7 @@ void eightXYS (unsigned short opcode)
 
 void eightXYb (unsigned short opcode)
 {
+	disasmnum = 16;
 	if(cpu.classic == 0)
 	{
 		//Shifts VX right 1 bit
@@ -355,7 +418,8 @@ void eightXYb (unsigned short opcode)
 
 void eightXY7 (unsigned short opcode)
 {
-	//Subtracts VY from VX with borrow bit support!
+	disasmnum = 17;
+	//Subtracts VX from VY and stores in VX, with borrow bit support!
 	int X;
 	int Y;
 	int Z;
@@ -377,6 +441,7 @@ void eightXY7 (unsigned short opcode)
 
 void eightXYE (unsigned short opcode)
 {
+	disasmnum = 18;
 	if(cpu.classic == 0)
 	{
 		//Shifts VX left 1 bit
@@ -402,10 +467,11 @@ void eightXYE (unsigned short opcode)
 
 void nineXYO (unsigned short opcode)
 {
+	disasmnum = 19;
 	//Skips the next instruction if VX != VY
 	int X;
 	int Y;
-	opcode = opcode - 0x8000;
+	opcode = opcode - 0x9000;
 	opcode = opcode >> 4;
 	X = opcode >> 4;
 	Y = opcode - (X << 4);
@@ -415,6 +481,7 @@ void nineXYO (unsigned short opcode)
 
 void ANNN (unsigned short opcode)
 {
+	disasmnum = 20;
 	//Sets I to address NNN
 	opcode = opcode - 0xA000;
 	cpu.I = opcode;
@@ -422,13 +489,15 @@ void ANNN (unsigned short opcode)
 
 void BNNN (unsigned short opcode)
 {
+	disasmnum = 21;
 	//Jumps to address NNN + V[0]
 	opcode = opcode - 0xB000;
-	cpu.pc = opcode + cpu.V[0];
+	cpu.pc = ((opcode + cpu.V[0])-2);
 }
 
 void CXNN (unsigned short opcode)
 {
+	disasmnum = 22;
 	//sets V[X] to a random number and NN
 	int X;
 	unsigned short Z;
@@ -438,13 +507,14 @@ void CXNN (unsigned short opcode)
 	opcode = opcode << 8;
 	opcode = opcode >> 8;
 	bit = opcode;
-	srand(bit);
+//	srand(bit);
 	Z = rand();
 	cpu.V[X] = bit & Z;
 }
 
 void DXYN (unsigned short opcode)
 {
+	disasmnum = 23;
 	//prints the sprite at location I in ram of size (8,N) to the screen at V[X] V[Y]
 	unsigned char X;
 	unsigned char Y;
@@ -497,6 +567,7 @@ void DXYN (unsigned short opcode)
 
 void EXnineE (unsigned short opcode)
 {
+	disasmnum = 24;
 	//Skips next instruction if key at V[X] is pressed
 	int X;
 	opcode = opcode - 0xE09E;
@@ -507,6 +578,7 @@ void EXnineE (unsigned short opcode)
 
 void EXAI (unsigned short opcode)
 {
+	disasmnum = 25;
 	//Skips next instruction if key at V[X] is not pressed
 	int X;
 	opcode = opcode - 0xE0A1;
@@ -517,6 +589,7 @@ void EXAI (unsigned short opcode)
 
 void FXOseven (unsigned short opcode)
 {
+	disasmnum = 26;
 	//Sets V[X] to the value of the delay timer
 	int X;
 	opcode = opcode - 0xF007;
@@ -526,6 +599,7 @@ void FXOseven (unsigned short opcode)
 
 void FXOA (unsigned short opcode)
 {
+	disasmnum = 27;
 	//Waits for a key, then stores it in V[X]
 	int X;
 	int x;
@@ -542,6 +616,7 @@ void FXOA (unsigned short opcode)
 
 void FXIS (unsigned short opcode)
 {
+	disasmnum = 28;
 	//Sets V[X] to the value of the delay timer
 	int X;
 	opcode = opcode - 0xF015;
@@ -551,6 +626,7 @@ void FXIS (unsigned short opcode)
 
 void FXIeight (unsigned short opcode)
 {
+	disasmnum = 29;
 	//Sets V[X] to the value of the sound timer
 	int X;
 	opcode = opcode - 0xF018;
@@ -560,6 +636,7 @@ void FXIeight (unsigned short opcode)
 
 void FXIE (unsigned short opcode)
 {
+	disasmnum = 30;
 	//Adds V[X] to I
 	int X;
 	unsigned int z;
@@ -574,6 +651,7 @@ void FXIE (unsigned short opcode)
 
 void FXZnine (unsigned short opcode)
 {
+	disasmnum = 31;
 	//Sets I to the sprite for the value at V[X]
 	int X;
 	opcode = opcode - 0xF029;
@@ -583,6 +661,7 @@ void FXZnine (unsigned short opcode)
 
 void FXTT (unsigned short opcode)
 {
+	disasmnum = 32;
 	//Stores the BCD of V[X] across I, I+1, and I+2
 	int X;
 	char h, t, o;
@@ -598,6 +677,7 @@ void FXTT (unsigned short opcode)
 
 void FXSS (unsigned short opcode)
 {
+	disasmnum = 33;
 	//Stores the value of V[0] through V[X] in memory starting at I
 	int X;
 	int x;
@@ -613,6 +693,7 @@ void FXSS (unsigned short opcode)
 
 void FXbS (unsigned short opcode)
 {
+	disasmnum = 34;
 	//Stores in V[0] through V[X] the data in memory starting at I
 	int X;
 	int x;
@@ -648,97 +729,161 @@ int cycle()
 	}
 	cpu.opcode[0] = cpu.memory[cpu.pc];
 	cpu.opcode[1] = cpu.memory[cpu.pc+1];
+	char a;
+	char b;
+	char test;
+	a = fn(cpu.opcode[0]);
+	b = ln(cpu.opcode[1]);
 	cpu.op = cpu.opcode[0] << 8;
 	cpu.op += cpu.opcode[1];
-	if(cpu.dbug == 1)
-	{
-		mvwprintw(botlin, 0,0, "OP:%04X PC:%d(%04X) Tick:%d\n", cpu.op, cpu.pc, cpu.pc, cpu.tick);
-		cyclemem();
-		if(cpu.stepthru == 1)
-			if(bi() == 'b')
-				cpu.dt = 0;
-		wrefresh(botlin);
-	}
-	else
-	{
-		SDL_GetNumAudioDevices(0);
-		mvwprintw(botlin2, 0,0, "Audio Device:%d %s\n", devicenum, SDL_GetAudioDeviceName((devicenum - 2), 0));
-		mvwprintw(botlin, 0,0, "OP:%04X PC:%d(%04X) Tick:%d Screen Scale:%d Audio Device:%d %s\n", cpu.op, cpu.pc, cpu.pc, cpu.tick, SCREEN_SCALE, devicenum, SDL_GetAudioDeviceName(0, 0));
-		wrefresh(botlin);
-	}
-	cpu.pc += 2;
+	SDL_GetNumAudioDevices(0);
+	mvwprintw(botlin, 0,0, "OP:%04X PC:%d(%04X) Tick:%d Screen Scale:%d Audio Device:%d %s\n", cpu.op, cpu.pc, cpu.pc, cpu.tick, SCREEN_SCALE, devicenum, SDL_GetAudioDeviceName(0, 0));
+	wrefresh(botlin);
+	a = fn(cpu.opcode[0]);
+	b = ln(cpu.opcode[1]);
+	cpu.pcp = cpu.pc;
 	if(cpu.op == 0x00E0)
 		OOEO();
 	else if(cpu.op == 0x00EE)
 		OOEE();
-	else if(fn(cpu.opcode[0]) == 0)
-		ONNN();
-	else if(fn(cpu.opcode[0]) == 1)
-		INNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 2)
-		ZNNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 3)
-		TXNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 4)
-		HXNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 5)
-		SXYO(cpu.op);
-	else if(fn(cpu.opcode[0]) == 6)
-		bXNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 7)
-		sevenXNN(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 0))
-		eightXYO(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 1))
-		eightXYI(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 2))
-		eightXYZ(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 3))
-		eightXYthree(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 4))
-		eightXYfour(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 5))
-		eightXYS(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 6))
-		eightXYb(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 7))
-		eightXY7(cpu.op);
-	else if((fn(cpu.opcode[0]) == 8) && (ln(cpu.opcode[1]) == 14))
-		eightXYE(cpu.op);
-	else if((fn(cpu.opcode[0]) == 9) && (ln(cpu.opcode[1]) == 0))
-		nineXYO(cpu.op);
-	else if(fn(cpu.opcode[0]) == 10)
-		ANNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 11)
-		BNNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 12)
-		CXNN(cpu.op);
-	else if(fn(cpu.opcode[0]) == 13)
-		DXYN(cpu.op);
-	else if((fn(cpu.opcode[0]) == 14) && (cpu.opcode[1] == 0x9E))
-		EXnineE(cpu.op);
-	else if((fn(cpu.opcode[0]) == 14) && (cpu.opcode[1] == 0xA1))
-		EXAI(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x07))
-		FXOseven(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x0A))
-		FXOA(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x15))
-		FXIS(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x18))
-		FXIeight(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x1E))
-		FXIE(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x29))
-		FXZnine(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x33))
-		FXTT(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x55))
-		FXSS(cpu.op);
-	else if((fn(cpu.opcode[0]) == 15) && (cpu.opcode[1] == 0x65))
-		FXbS(cpu.op);
-	else if(cpu.dbug == 1)
-		wprintw(botlin2, "\nUnrecognized opcode: %04X", cpu.op);
+	switch (a)
+	{
+		case 0:
+			ONNN();
+			break;
+		case 1:
+			INNN(cpu.op);
+			break;
+		 case 2:
+			ZNNN(cpu.op);
+			break;
+		case 3:
+			TXNN(cpu.op);
+			break;
+		case 4:
+			HXNN(cpu.op);
+			break;
+		case 5:
+			SXYO(cpu.op);
+			break;
+		case 6:
+			bXNN(cpu.op);
+			break;
+		case 7:
+			sevenXNN(cpu.op);
+			break;
+		case 8:
+			switch (b)
+			{
+				case 0:
+					eightXYO(cpu.op);
+					break;
+				case 1:
+					eightXYI(cpu.op);
+					break;
+				case 2:
+					eightXYZ(cpu.op);
+					break;
+				case 3:
+					eightXYthree(cpu.op);
+					break;
+				case 4:
+					eightXYfour(cpu.op);
+					break;
+				case 5:
+					eightXYS(cpu.op);
+					break;
+				case 6:
+					eightXYb(cpu.op);
+					break;
+				case 7:
+					eightXY7(cpu.op);
+					break;
+				case 14:
+					eightXYE(cpu.op);
+					break;
+			}
+			break;
+		case 9:
+			nineXYO(cpu.op);
+			break;
+		case 10:
+			ANNN(cpu.op);
+			break;
+		case 11:
+			BNNN(cpu.op);
+			break;
+		case 12:
+			CXNN(cpu.op);
+			break;
+		case 13:
+			DXYN(cpu.op);
+			break;
+		case 14:
+			if(cpu.opcode[1] == 0x9E)
+				EXnineE(cpu.op);
+			else if(cpu.opcode[1] == 0xA1)
+				EXAI(cpu.op);
+			break;
+		case 15:
+			switch (cpu.opcode[1])
+			{
+				case 0x07:
+					FXOseven(cpu.op);
+					break;
+				case 0x0A:
+					FXOA(cpu.op);
+					break;
+				case 0x15:
+					FXIS(cpu.op);
+					break;
+				case 0x18:
+					FXIeight(cpu.op);
+					break;
+				case 0x1E:
+					FXIE(cpu.op);
+					break;
+				case 0x29:
+					FXZnine(cpu.op);
+					break;
+				case 0x33:
+					FXTT(cpu.op);
+					break;
+				case 0x55:
+					FXSS(cpu.op);
+					break;
+				case 0x65:
+					FXbS(cpu.op);
+					break;
+			}
+			break;
+		default:
+			if(cpu.dbug == 1)
+			{
+				disasmnum = 35;
+				wprintw(botlin2, "\nUnrecognized opcode: %04X", cpu.op);
+				badlines++;
+			}
+			break;
+	}
+	if(cpu.dbug == 1)
+	{
+//		mvwprintw(botlin, 0,0, "OP:%04X PC:%d(%04X) Tick:%d\n", cpu.op, cpu.pc, cpu.pc, cpu.tick);
+//		wrefresh(botlin);
+		cyclemem();
+		if(cpu.stepthru == 1)
+		{
+			test = bi();
+			if(test == 'b')
+				cpu.dt = 0;
+			if(test == 'r')
+			{
+				reloadgame();
+				cpu.pc-=2;
+			}
+		}
+	}
+	cpu.pc += 2;
 	return 0;
 };
 

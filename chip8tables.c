@@ -38,8 +38,58 @@ char bitmap[80] = {
 	0xF0, 0x80, 0xC0, 0x80, 0xF0,
 	0xF0, 0x80, 0xC0, 0x80, 0x80};
 
+char loader[58] = {
+	0x62, 0x01, 0x63, 0x00, 0xA1, 0xFF,
+	0x00, 0x00, 0xF2, 0x1E, 0x83, 0x23,
+	0xF1, 0x0A, 0x81, 0x1E, 0x81, 0x1E,
+	0x81, 0x1E, 0x81, 0x1E, 0x84, 0x00,
+	0xF1, 0x0A, 0x80, 0x14, 0xF0, 0x55,
+	0x92, 0x30, 0x10, 0x72, 0x00, 0x00,
+	0x90, 0x20, 0x10, 0x7A, 0x10, 0x56,
+	0x00, 0x00, 0x20, 0x80, 0x12, 0x00,
+	0x00, 0x00, 0x62, 0x00, 0x63, 0x00,
+	0xA0, 0x00, 0x00, 0xEE};
+
 char keymap[16] = {
 	'x', '1', '2', '3',
 	'q', 'w', 'e', 'a',
 	's', 'd', 'z', 'c',
 	'4', 'r', 'f', 'v'};
+
+char disasm[36][20] = {
+	"RCA PROG",				//0NNN
+	"CLEAR SCREEN",			//00E0
+	"RET",					//00EE
+	"JMP NNN",				//1NNN
+	"CALL NNN",				//2NNN
+	"SKIP IF VX=NN",		//3XNN
+	"SKIP IF VX!=NN",		//4XNN
+	"SKIP IF VX=V[Y]",		//5XY0
+	"SET VX NN",			//6XNN
+	"SET VX+NN",			//7XNN
+	"SET VX VY",			//8XY0
+	"SET VX|VY",			//8XY1
+	"SET VX&VY",			//8XY2
+	"SET VX^VY",			//8XY3
+	"ADC VX VY",			//8XY4
+	"SWC VX VY",			//8XY5
+	"LSR VX",				//8XY6
+	"SWC VY VX, STORE VX",	//8XY7
+	"LSL VX",				//8XYE
+	"SKIP IF VX!=VY",		//9XY0
+	"SET I NNN",			//ANNN
+	"JMP NNN+VX",			//BNNN
+	"RAND VX & NN",			//CXNN
+	"PRNT I,N VX,VY",		//DXYN
+	"SKIP KEY[VX]",			//EX9E
+	"SKIP !KEY[VX]",		//EXA1
+	"SET VX DT",			//FX07
+	"QIOW VX",				//FX0A
+	"SET DT VX",			//FX15
+	"SET VX ST",			//FX18
+	"ADD I VX",				//FX1E
+	"SET I SPRITE[VX]",		//FX29
+	"BCD MEM[I] VX",		//FX33
+	"PUSH MEM[I] V0-VX",	//FX55
+	"POP MEM[I] V0-VX",		//FX65
+	"UNKNOWN"};		

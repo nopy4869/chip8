@@ -16,6 +16,7 @@ http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter
 #include <time.h>
 #include <unistd.h>
 #include <curses.h>
+#include <string.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 #include "chip8tables.c"
@@ -34,14 +35,27 @@ int main(int argc, char **argv)
 	// Initialize the Chip8 system and load the game into the memory
 	initscr();
 	cbreak();
-	dbgwin = derwin(stdscr,36,20,0,65);
-	srcwin = derwin(stdscr,(LINES-35),64,33,0);
-	keywin = derwin(stdscr,5,5,36,65);
+	dbgwin = derwin(stdscr,36,20,(LINES-36),(COLS-20));
+	srcwin = derwin(stdscr,(LINES-37),90,36,0);
+	keywin = derwin(stdscr,5,5,1,(COLS-6));
+	disasmwin = derwin(stdscr,10,20,6,(COLS-26));
 	botlin = derwin(stdscr,1,64,(LINES-1),0);
 	botlin2 = derwin(stdscr,1,64,(LINES-2),0);
-	scrollok(stdscr,TRUE);
+	if(keywin == NULL)
+		wprintw(stdscr, "keywin\n");
+	if(srcwin == NULL)
+		wprintw(stdscr, "srcwin\n");
+	if(dbgwin == NULL)
+		wprintw(stdscr, "dbgwin\n");
+	if(disasmwin == NULL)
+		wprintw(stdscr, "disasmwin\n");
+	
+	wprintw(stdscr, "%d\n", SDL_GetPerformanceFrequency());
+	
+	scrollok(stdscr,FALSE);
+	scrollok(disasmwin,TRUE);
 	scrollok(botlin, FALSE);
-	scrollok(botlin2, TRUE);
+	scrollok(botlin2, FALSE);
 	colorcheck();
 	initcpu();
 	if(loadgame() == 1)
@@ -96,10 +110,10 @@ int nruncycle()
 			if(cpu.st > 0)
 				cpu.st--;
 		}
-		if(cpu.st > 0)
-		{
-			printf("\b\n");
-		}
+//		if(cpu.st > 0)
+//		{
+//			printf("\b\n");
+//		}
 		if(cycle() == 1)
 		{
 			wclear(stdscr);
@@ -129,35 +143,39 @@ void sruncycle()
 				if(cpu.st > 0)
 					cpu.st--;
 			}
-			usleep(500);
-			if((cpu.tick % 2) == 0)
+			cpu.currcount = SDL_GetPerformanceCounter();
+			if((cpu.currcount - cpu.lastcount) >= (SDL_GetPerformanceFrequency()/2000))
 			{
-				if(cpu.dt > 0)
-					cpu.dt--;
+				cpu.lastcount = cpu.currcount;
+				if((cpu.tick % 33) == 0)
+				{
+					if(cpu.dt > 0)
+						cpu.dt--;
+					if(cpu.st > 0)
+						cpu.st--;
+				}
 				if(cpu.st > 0)
-					cpu.st--;
+				{
+					SDLBeep(1);
+				}
+				else
+				{
+					SDLBeep(0);
+				}
+				if(cycle() == 1)
+				{
+					wclear(stdscr);
+					wprintw(stdscr, "This shouldn't be possible...\nOh well, it failed to emulate this cycle... Shutting down now!\n");
+					wrefresh(stdscr);
+					hang(3);
+					endwin();
+					ExitHard();
+				}
+				if(cpu.drawflag == 1)
+					drawscreen();
+				SDLinput();
+				cpu.tick += 1;
 			}
-			if(cpu.st > 0)
-			{
-				SDLBeep(1);
-			}
-//			else
-//			{
-//				SDLBeep(0);
-//			}
-			if(cycle() == 1)
-			{
-				wclear(stdscr);
-				wprintw(stdscr, "This shouldn't be possible...\nOh well, it failed to emulate this cycle... Shutting down now!\n");
-				wrefresh(stdscr);
-				hang(3);
-				endwin();
-				ExitHard();
-			}
-			if(cpu.drawflag == 1)
-				drawscreen();
-			SDLinput();
-			cpu.tick += 1;
 		}
 		else
 		{

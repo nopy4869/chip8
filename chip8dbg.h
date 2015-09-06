@@ -1,4 +1,4 @@
-int colex;
+int colex = 1;
 
 void colorcheck()
 {
@@ -6,8 +6,8 @@ void colorcheck()
 	{
 		colex = 1;
 		start_color();
-		init_pair(1, COLOR_RED, COLOR_BLACK);
-		init_pair(2, COLOR_BLUE, COLOR_BLACK);
+		init_pair(1, COLOR_RED, COLOR_GREEN);
+		init_pair(2, COLOR_BLUE, COLOR_WHITE);
 		attron(COLOR_PAIR(1));
 		wprintw(stdscr, "Terminal supports");
 		attroff(COLOR_PAIR(1));
@@ -16,11 +16,13 @@ void colorcheck()
 		attroff(COLOR_PAIR(2));
 		wrefresh(stdscr);
 		hang(3);
+		return;
 	}
 	else
 	{
 		wprintw(stdscr, "Terminal doesn't support color :( \n");
 		wrefresh(stdscr);
+		colex = 0;
 		hang(3);
 	}
 }
@@ -29,34 +31,45 @@ void cyclemem()
 {
 	int x;
 	int colorized = 0;
-	if(colex == 1)
-	{
-		init_pair(1, COLOR_BLACK, COLOR_WHITE);
-		init_pair(2, COLOR_BLUE, COLOR_BLACK);
-	}
+//	if(colex == 1)
+//	{
+//		init_pair(1, COLOR_RED, COLOR_WHITE);
+//		init_pair(2, COLOR_BLUE, COLOR_BLACK);
+//	}
 	mvwprintw(srcwin, 0, 0,"");
 	for(x = 512;x < (cpu.romsize+512);x++)
 	{
 		colorized = 0;
-		if((colex == 1) && ((x % 4) == 0))
+		if(colex == 1)
 		{
-			colorized = 2;
-			attron(COLOR_PAIR(2));
+			if((x % 4) == 0)
+			{
+				colorized = 2;
+				wattron(srcwin, COLOR_PAIR(2));
+			}
+			if(x == cpu.pcp)
+			{
+				if(colorized == 2)
+					wattroff(srcwin, COLOR_PAIR(2));
+				colorized = 1;
+				wattron(srcwin, COLOR_PAIR(1));
+			}
+			if((x%32) == 0)
+				wprintw(srcwin, "\n");
 		}
-		if((colex == 1) && (x == cpu.pc))
-		{
-			if(colorized == 2)
-				attroff(COLOR_PAIR(2));
-			colorized = 1;
-			attron(COLOR_PAIR(1));
-		}
-		wprintw(srcwin, "%02X%02X", cpu.memory[x], cpu.memory[x+1]);
+		wprintw(srcwin, "%02X%02X ", cpu.memory[x], cpu.memory[x+1]);
 		if(colorized == 1)
-			attroff(COLOR_PAIR(1));
+			wattroff(srcwin, COLOR_PAIR(1));
 		if(colorized == 2)
-			attroff(COLOR_PAIR(2));
+			wattroff(srcwin, COLOR_PAIR(2));
 		x++;
 	}
+	mvwprintw(disasmwin, 9, 0, "");
+	for(x=0;x<20;x++)
+	{
+		wprintw(disasmwin, "%c",disasm[disasmnum][x]);
+	}
+	wprintw(disasmwin, "\n");
 	mvwprintw(dbgwin, 0, 0,"");
 	wprintw(dbgwin, "V[0] = %d (%04X)\n", cpu.V[0], cpu.V[0]);
 	wprintw(dbgwin, "V[1] = %d (%04X)\n", cpu.V[1], cpu.V[1]);
@@ -105,7 +118,9 @@ void cyclemem()
 	wprintw(keywin, "%c%c%c%c\n", exes[4],  exes[5],  exes[6],  exes[13]);
 	wprintw(keywin, "%c%c%c%c\n", exes[7],  exes[8],  exes[9],  exes[14]);
 	wprintw(keywin, "%c%c%c%c\n", exes[10], exes[0],  exes[11], exes[15]);
+	wrefresh(stdscr);
 	wrefresh(srcwin);
 	wrefresh(dbgwin);
 	wrefresh(keywin);
+	wrefresh(disasmwin);
 }

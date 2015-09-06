@@ -1,6 +1,7 @@
 #include <stdio.h>
 void ExitHard();
 void resize(char ud);
+void reloadgame();
 
 int hang (int howlonghang)
 {
@@ -20,7 +21,7 @@ int bi ()
 	nodelay(stdscr, FALSE);
 	int read = getch();
 //	if(cpu.stepthru == 1)
-//		return '2';
+//		return 2;
 	return read;
 };
 

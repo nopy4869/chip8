@@ -135,7 +135,7 @@ void SDLBeep(char beepstate)
 {
 	if(beepstate == 1)
 	{
-		if((SDL_GetAudioDeviceStatus(devicenum) == SDL_AUDIO_STOPPED) || (SDL_GetAudioDeviceStatus(devicenum) == SDL_AUDIO_PAUSED) || ((0 <= SDL_GetQueuedAudioSize(devicenum)) && (SDL_GetQueuedAudioSize(devicenum) <= 512)))
+		if((SDL_GetAudioDeviceStatus(devicenum) == SDL_AUDIO_STOPPED) || (SDL_GetAudioDeviceStatus(devicenum) == SDL_AUDIO_PAUSED) || ((0 <= SDL_GetQueuedAudioSize(devicenum)) && (SDL_GetQueuedAudioSize(devicenum) <= 2048)))
 		{
 		 	SDL_QueueAudio(devicenum, *beepsound.buffer, beepsound.length);
 		}
@@ -193,8 +193,6 @@ int SDLAudioInit()
 	point3 = (Uint32 *)beepsound.meta + (&device.size - (Uint32 *)&device);
 	temp.size = *point3;
 	wclear(stdscr);
-	wprintw(stdscr, "freq, format, channels, silence, samples, size\n");
-	wprintw(stdscr, "%d, %d, %d, %d, %d, %d\n", temp.freq, temp.format, temp.channels, temp.silence, temp.samples, temp.size);
 	wrefresh(stdscr);
 	SDL_BuildAudioCVT(&beeps, temp.format, temp.channels, temp.freq, device.format, device.channels, device.freq);
 	if(beeps.needed == 1)

@@ -10,6 +10,7 @@ struct chipeight
 		unsigned char st;
 		unsigned short I;
 		unsigned short pc;
+		unsigned short pcp;
 		unsigned char opcode[2];
 		unsigned short op;
 		unsigned char drawflag;
@@ -20,11 +21,14 @@ struct chipeight
 		unsigned char stepthru;
 		unsigned int romsize;
 		unsigned int tick;
+		Uint64 currcount;
+		Uint64 lastcount;
 	} cpu;
 
 int SCREEN_SCALE = 16;
 int SCREEN_WIDTH;
 int SCREEN_HEIGHT;
+int disasmnum;
 
 SDL_Window* sWindow = NULL;
 SDL_Surface* sScreen = NULL;
@@ -39,6 +43,7 @@ struct sound
 	} beepsound;
 
 WINDOW *dbgwin;
+WINDOW *disasmwin;
 WINDOW *srcwin;
 WINDOW *keywin;
 WINDOW *botlin;
