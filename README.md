@@ -8,13 +8,13 @@ Pong rom is in the public domain, in addition to beep.wav.
 
 The controls are as follows:
 
-123C    \   1234
+123C   \   1234
 
-456D  == \  qwer
+456D  = \  qwer
 
-789E  == /  asdf
+789E  = /  asdf
 
-A0BF    /   zxcv
+A0BF   /   zxcv
 
 
 [ decreases screen scale
